@@ -7,39 +7,12 @@ const client = axios.create({
   timeout: 300_000,
 });
 
-// Attach the CafeToolbox Supabase JWT to every request
-client.interceptors.request.use(async (config) => {
-  const token = await getSessionToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-/**
- * Retrieve the current session access_token from Supabase Auth.
- * This integrates with the existing CafeToolbox login flow.
- */
-async function getSessionToken(): Promise<string | null> {
-  // Supabase stores its session in localStorage under a key like:
-  // sb-<project-ref>-auth-token
-  if (typeof window === "undefined") return null;
-
-  try {
-    const storageKey = Object.keys(localStorage).find(
-      (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
-    );
-    if (!storageKey) return null;
-
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return null;
-
-    const session = JSON.parse(raw);
-    return session?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
+// TODO: Re-enable when integrating with CafeToolbox login
+// client.interceptors.request.use(async (config) => {
+//   const token = await getSessionToken();
+//   if (token) config.headers.Authorization = `Bearer ${token}`;
+//   return config;
+// });
 
 // ─── Types matching the backend response shape ────────────
 
@@ -81,10 +54,8 @@ export interface AnalysisResult {
   date: string;
 }
 
-// New schema from Supabase
 export interface HistoryRecord {
   id: string;
-  user_id: string;
   target_type: "file" | "url";
   target_name: string;
   target_hash: string | null;
