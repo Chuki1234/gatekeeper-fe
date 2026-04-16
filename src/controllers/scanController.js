@@ -12,7 +12,6 @@ async function scanFile(req, res, next) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const userId = req.user.id;
     const { buffer, originalname } = req.file;
 
     // Phase 1 — hash check
@@ -54,11 +53,9 @@ async function scanFile(req, res, next) {
       report.source = 'new_scan';
     }
 
-    // Map status → verdict for the new schema
     const verdict = mapVerdict(report.stats);
 
     supabase.saveScan({
-      user_id: userId,
       target_type: 'file',
       target_name: report.file_name,
       target_hash: report.file_hash,
@@ -77,7 +74,6 @@ async function scanFile(req, res, next) {
 
 async function scanUrl(req, res, next) {
   try {
-    const userId = req.user.id;
     const { url } = req.body;
 
     if (!url) {
@@ -115,7 +111,6 @@ async function scanUrl(req, res, next) {
     const verdict = mapVerdict(report.stats);
 
     supabase.saveScan({
-      user_id: userId,
       target_type: 'url',
       target_name: url,
       target_hash: urlId,
@@ -147,8 +142,7 @@ async function getAnalysis(req, res, next) {
 async function getReport(req, res, next) {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const record = await supabase.getScanById(id, userId);
+    const record = await supabase.getScanById(id);
 
     if (!record) {
       return res.status(404).json({ error: 'Scan not found' });
@@ -162,10 +156,9 @@ async function getReport(req, res, next) {
 
 // ─── GET /api/scan/history ────────────────────────────────
 
-async function getHistory(req, res, next) {
+async function getHistory(_req, res, next) {
   try {
-    const userId = req.user.id;
-    const scans = await supabase.getRecentScans(userId);
+    const scans = await supabase.getRecentScans();
     return res.json(scans);
   } catch (err) {
     next(err);

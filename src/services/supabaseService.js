@@ -14,14 +14,12 @@ function getClient() {
 
 /**
  * Persist a scan result into the `scans` table.
- * Uses the new schema: id (uuid PK), user_id, target_type, target_name,
- * target_hash, stats, verdict, analysis_id, created_at.
+ * Standalone mode — no user_id required.
  */
-async function saveScan({ user_id, target_type, target_name, target_hash, stats, verdict, analysis_id }) {
+async function saveScan({ target_type, target_name, target_hash, stats, verdict, analysis_id }) {
   const { data, error } = await getClient()
     .from('scans')
     .insert({
-      user_id,
       target_type,
       target_name,
       target_hash: target_hash ?? null,
@@ -36,31 +34,21 @@ async function saveScan({ user_id, target_type, target_name, target_hash, stats,
   return data;
 }
 
-/**
- * Fetch a single scan by its uuid, scoped to a user.
- */
-async function getScanById(scanId, userId) {
-  const query = getClient()
+async function getScanById(scanId) {
+  const { data, error } = await getClient()
     .from('scans')
     .select('*')
-    .eq('id', scanId);
-
-  if (userId) query.eq('user_id', userId);
-
-  const { data, error } = await query.single();
+    .eq('id', scanId)
+    .single();
 
   if (error && error.code !== 'PGRST116') throw error;
   return data;
 }
 
-/**
- * Fetch recent scans for a specific user.
- */
-async function getRecentScans(userId, limit = 20) {
+async function getRecentScans(limit = 20) {
   const { data, error } = await getClient()
     .from('scans')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
 
