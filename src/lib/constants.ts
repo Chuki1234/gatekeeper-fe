@@ -2,12 +2,12 @@ export const SITE_NAME = "Gatekeeper";
 export const SITE_DESCRIPTION =
   "Virus & URL Scanner — detect threats before they reach you.";
 
-export const GITHUB_URL = "https://github.com/example/gatekeeper";
+export const GITHUB_URL = "https://github.com/Chuki1234/gatekeeper-fe";
 
 export const NAV_LINKS = [
   { label: "Scanner", href: "/" },
   { label: "History", href: "/history" },
-  { label: "API", href: "/api-docs" },
+  { label: "Status", href: "/status" },
   { label: "About", href: "/about" },
 ] as const;
 
