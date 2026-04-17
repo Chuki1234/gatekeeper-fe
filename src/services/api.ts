@@ -56,7 +56,7 @@ export interface AnalysisResult {
 
 export interface HistoryRecord {
   id: string;
-  target_type: "file" | "url";
+  target_type: "file" | "url" | "search_query";
   target_name: string;
   target_hash: string | null;
   stats: ScanStats;
@@ -69,7 +69,7 @@ export interface HistoryRecord {
 
 export interface ScanResult {
   id: string;
-  type: "file" | "url";
+  type: "file" | "url" | "search";
   target: string;
   status: "clean" | "malicious" | "suspicious";
   score: number;
@@ -79,6 +79,24 @@ export interface ScanResult {
   typeDescription?: string | null;
   reputation?: number | null;
   source?: "cache" | "new_scan";
+}
+
+export interface SearchIntelligenceResult {
+  object_id: string;
+  object_type: "files" | "urls" | "domains" | "ip_addresses" | string;
+  query: string;
+  reputation_score: number;
+  total_votes: {
+    harmless: number;
+    malicious: number;
+  };
+  last_analysis_stats: ScanStats;
+  community_comments: Array<{
+    id: string | null;
+    text: string;
+    date: string | null;
+  }>;
+  last_analysis_date: string;
 }
 
 function mapFileResult(r: FileScanResult): ScanResult {
@@ -123,13 +141,30 @@ export function mapHistoryRecord(r: HistoryRecord): ScanResult {
   const total = stats?.total_engines || 1;
   return {
     id: r.id,
-    type: r.target_type,
+    type: r.target_type === "search_query" ? "search" : r.target_type,
     target: r.target_name,
     status: r.verdict === "scanning" ? "clean" : r.verdict,
     score: Math.round((detections / total) * 100),
     detections,
     totalEngines: stats?.total_engines ?? 0,
     timestamp: r.created_at,
+  };
+}
+
+function mapSearchResult(r: SearchIntelligenceResult): ScanResult {
+  const stats = r.last_analysis_stats;
+  const detections = stats?.positive_hits ?? 0;
+  const total = stats?.total_engines || 1;
+  return {
+    id: r.object_id,
+    type: "search",
+    target: r.query,
+    status: detections > 3 ? "malicious" : detections > 0 ? "suspicious" : "clean",
+    score: Math.round((detections / total) * 100),
+    detections,
+    totalEngines: stats?.total_engines ?? 0,
+    timestamp: r.last_analysis_date,
+    reputation: r.reputation_score,
   };
 }
 
@@ -164,6 +199,13 @@ export async function getReport(scanId: string): Promise<HistoryRecord> {
 export async function fetchHistory(): Promise<ScanResult[]> {
   const { data } = await client.get<HistoryRecord[]>("/api/scan/history");
   return (data ?? []).map(mapHistoryRecord);
+}
+
+export async function searchIntelligence(query: string): Promise<ScanResult> {
+  const { data } = await client.get<SearchIntelligenceResult>("/api/search", {
+    params: { q: query },
+  });
+  return mapSearchResult(data);
 }
 
 export async function healthCheck(): Promise<boolean> {
